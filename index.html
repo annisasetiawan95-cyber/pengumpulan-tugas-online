@@ -8,6 +8,8 @@
     <!-- Font baru: Cormorant Garamond & Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Impor Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Latar belakang animasi gradasi lilac */
         .animated-bg {
@@ -82,7 +84,7 @@
             </div>
             <form id="user-form">
                 <div class="p-6 space-y-4">
-                     <input type="hidden" id="user-id">
+                        <input type="hidden" id="user-id">
                     <div>
                         <label for="user-nama" class="block mb-1 font-medium">Nama Lengkap</label>
                         <input type="text" id="user-nama" class="w-full p-2 border rounded-md" required>
@@ -96,7 +98,7 @@
                         <input type="password" id="user-password" class="w-full p-2 border rounded-md">
                         <p id="password-hint" class="text-xs text-gray-500 mt-1">Kosongkan jika tidak ingin mengubah password.</p>
                     </div>
-                     <div>
+                    <div>
                         <label for="user-role" class="block mb-1 font-medium">Peran</label>
                         <select id="user-role" class="w-full p-2 border rounded-md bg-white">
                             <option value="siswa">Siswa</option>
@@ -117,85 +119,51 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // =================================================================================
+            // KONFIGURASI SUPABASE (GANTI DENGAN KUNCI ANDA)
+            // =================================================================================
+            const SUPABASE_URL = 'https://ohluflprnebfsescgryg.supabase.co'; // <-- GANTI DENGAN URL ANDA
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9obHVmbHBybmViZnNlc2NncnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwODQ5MDgsImV4cCI6MjA3NjY2MDkwOH0.F2a_P9zSoRGaiep0qSe22qVqvFSnajFZ7OzYRl13Qts'; // <-- GANTI DENGAN KUNCI ANON ANDA
+
+            const appContainer = document.getElementById('app');
+            
+            // Cek apakah kredensial sudah diisi
+            if (SUPABASE_URL === 'URL_ANDA_DARI_SUPABASE' || SUPABASE_ANON_KEY === 'KUNCI_ANON_ANDA_DARI_SUPABASE') {
+                appContainer.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-lg max-w-2xl mx-auto mt-10 animate-fade-in-up">
+                    <h2 class="font-bold text-xl mb-2">Konfigurasi Database Diperlukan!</h2>
+                    <p class="font-sans">Anda harus mengedit file <strong>index.html</strong> ini.</p>
+                    <p class="font-sans mt-2">Salin <code>URL</code> dan <code>Kunci ANON</code> dari proyek Supabase Anda dan tempelkan ke variabel <strong>SUPABASE_URL</strong> dan <strong>SUPABASE_ANON_KEY</strong> di baris atas tag script.</p>
+                    <p class="font-sans mt-2">Silakan ikuti panduan di file <strong>panduan_supabase.md</strong> untuk mendapatkannya.</p>
+                </div>`;
+                return; // Menghentikan eksekusi skrip jika belum dikonfigurasi
+            }
+
+            // Inisialisasi Supabase Client
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+            // =================================================================================
             // STATE & DATA MANAGEMENT
             // =================================================================================
-            const deadlineTugas3 = new Date();
-            deadlineTugas3.setDate(deadlineTugas3.getDate() + 3);
-
+            // State sekarang hanya menyimpan data sesi. Data utama akan diambil dari Supabase.
             let state = {
                 currentUserRole: null, 
                 currentUserName: null, 
                 currentUserId: null,
                 users: {
-                    superadmin: [
-                        { id: 101, username: 'superadmin', password: '123', nama: 'Admin Utama' }
-                    ],
-                    guru: [
-                        { id: 201, username: 'guru', password: '123', nama: 'Ibu Guru Elegan', status: 'approved' }
-                    ],
-                    siswa: [
-                        { id: 301, username: 'siswa', password: '123', nama: 'Budi Santoso', status: 'approved' },
-                        { id: 302, username: 'siti', password: 'siti123', nama: 'Siti Aminah', status: 'approved' },
-                        { id: 303, username: 'elegan', password: 'siswa123', nama: 'Siswa Elegan', status: 'approved'}
-                    ]
+                    superadmin: [],
+                    guru: [],
+                    siswa: []
                 },
-                tugas: [
-                    {
-                        id: 1,
-                        judul: "Tugas 1: Analisis Puisi Klasik",
-                        deskripsi: "Buatlah analisis mendalam terhadap puisi 'Aku' karya Chairil Anwar. Fokus pada majas dan makna yang terkandung.",
-                        deadline: new Date('2025-10-10T23:59:00')
-                    },
-                    {
-                        id: 2,
-                        judul: "Tugas 2: Riset Sejarah Seni Rupa",
-                        deskripsi: "Siapkan presentasi (PPT) mengenai aliran seni Impresionisme. Sertakan tokoh-tokoh utamanya dan contoh karya.",
-                        deadline: new Date('2025-10-15T23:59:00')
-                    },
-                    {
-                        id: 3,
-                        judul: "Tugas 3: Esai Filsafat",
-                        deskripsi: "Tulis esai mengenai konsep 'Cogito, ergo sum' oleh René Descartes. Jelaskan implikasinya dalam filsafat modern.",
-                        deadline: deadlineTugas3
-                    }
-                ],
-                pengumpulan: [
-                     {
-                        id: 1,
-                        tugasId: 1,
-                        siswaId: 301,
-                        namaSiswa: "Budi Santoso",
-                        file: { name: 'analisis_puisi_budi.pdf', size: 1200 },
-                        tanggalKumpul: new Date('2025-10-09T10:00:00'),
-                        nilai: 90,
-                        komentarGuru: "Kerja bagus, Budi! Analisisnya sangat tajam dan referensinya lengkap."
-                    },
-                    {
-                        id: 2,
-                        tugasId: 2,
-                        siswaId: 302,
-                        namaSiswa: "Siti Aminah",
-                        file: { name: 'presentasi_impresionisme_siti.pptx', size: 2500 },
-                        tanggalKumpul: new Date('2025-10-14T15:30:00'),
-                        nilai: 85,
-                        komentarGuru: "Presentasi menarik dan informatif. Lain kali, perbesar ukuran font agar lebih mudah dibaca."
-                    },
-                    {
-                        id: 3,
-                        tugasId: 1,
-                        siswaId: 303,
-                        namaSiswa: "Siswa Elegan",
-                        file: { name: 'tugas_puisi_klasik.docx', size: 950 },
-                        tanggalKumpul: new Date('2025-10-11T08:00:00'),
-                        nilai: null,
-                        komentarGuru: null
-                    }
-                ]
+                tugas: [],
+                pengumpulan: []
             };
 
-            const appContainer = document.getElementById('app');
             const modalContainer = document.getElementById('modal-container');
             const userModal = document.getElementById('user-modal');
+            const userForm = document.getElementById('user-form');
+            const userModalTitle = document.getElementById('user-modal-title');
+            const userError = document.getElementById('user-error');
+            const passwordHint = document.getElementById('password-hint');
 
             // =================================================================================
             // HELPER FUNCTIONS
@@ -226,7 +194,7 @@
             
             const getStatusPengumpulan = (pengumpulan, tugas) => {
                  if (new Date(pengumpulan.tanggalKumpul) <= new Date(tugas.deadline)) {
-                    return { text: 'Tepat Waktu', color: 'green' };
+                     return { text: 'Tepat Waktu', color: 'green' };
                 }
                 return { text: 'Terlambat', color: 'red' };
             }
@@ -249,29 +217,80 @@
                 }, 3000);
             };
             
+            // saveState sekarang HANYA menyimpan info login (sesi)
             const saveState = () => {
-                localStorage.setItem('kelasDigitalState', JSON.stringify(state));
+                const sessionData = {
+                    currentUserRole: state.currentUserRole,
+                    currentUserName: state.currentUserName,
+                    currentUserId: state.currentUserId
+                };
+                localStorage.setItem('kelasDigitalSession', JSON.stringify(sessionData));
             };
 
+            // loadState sekarang HANYA memuat info login (sesi)
             const loadState = () => {
-                const savedState = localStorage.getItem('kelasDigitalState');
-                if (savedState) {
-                    const parsedState = JSON.parse(savedState);
-                    // Convert date strings back to Date objects
-                    if (parsedState.tugas) {
-                        parsedState.tugas.forEach(t => t.deadline = new Date(t.deadline));
-                    }
-                    if (parsedState.pengumpulan) {
-                        parsedState.pengumpulan.forEach(p => p.tanggalKumpul = new Date(p.tanggalKumpul));
-                    }
-                    Object.assign(state, parsedState);
+                const savedSession = localStorage.getItem('kelasDigitalSession');
+                if (savedSession) {
+                    const parsedSession = JSON.parse(savedSession);
+                    Object.assign(state, parsedSession);
                 }
             };
+
+            // Fungsi BARU untuk memuat semua data dari Supabase
+            const loadDataFromSupabase = async () => {
+                // Tampilkan loader
+                appContainer.innerHTML = `<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-violet-600"></i><p class="font-sans text-lg mt-2">Memuat data dari database...</p></div>`;
+
+                try {
+                    // 1. Ambil data users
+                    const { data: usersData, error: usersError } = await supabase.from('users').select('*');
+                    if (usersError) throw usersError;
+
+                    // 2. Ambil data tugas
+                    const { data: tugasData, error: tugasError } = await supabase.from('tugas').select('*');
+                    if (tugasError) throw tugasError;
+
+                    // 3. Ambil data pengumpulan
+                    const { data: pengumpulanData, error: pengumpulanError } = await supabase.from('pengumpulan').select('*');
+                    if (pengumpulanError) throw pengumpulanError;
+
+                    // Proses dan masukkan data ke 'state' lokal
+                    state.users = { superadmin: [], guru: [], siswa: [] };
+                    usersData.forEach(user => {
+                        if (state.users[user.role]) {
+                            state.users[user.role].push(user);
+                        }
+                    });
+
+                    state.tugas = tugasData.map(t => ({
+                        ...t,
+                        deadline: new Date(t.deadline) // Ubah string timestamp menjadi objek Date
+                    }));
+
+                    state.pengumpulan = pengumpulanData.map(p => ({
+                        ...p,
+                        tanggalKumpul: new Date(p.tanggalKumpul), // Ubah string timestamp menjadi objek Date
+                        file: { name: p.file_name, size: p.file_size } // Rekonstruksi objek file
+                    }));
+                    
+                    return true; // Sukses
+
+                } catch (error) {
+                    console.error('Error loading data from Supabase:', error.message);
+                    appContainer.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-lg max-w-2xl mx-auto mt-10 animate-fade-in-up">
+                        <h2 class="font-bold text-xl mb-2">Error Terhubung ke Database!</h2>
+                        <p class="font-sans">Gagal memuat data dari Supabase. Pesan error: ${error.message}</p>
+                        <p class="font-sans mt-2">Pastikan URL dan Kunci Anon Anda benar, dan Anda telah (untuk sementara) menonaktifkan RLS (Row Level Security) pada tabel Anda seperti di panduan.</p>
+                    </div>`;
+                    return false; // Gagal
+                }
+            };
+
 
             // =================================================================================
             // RENDER FUNCTIONS (UI COMPONENTS)
             // =================================================================================
-
+            // ... (Semua fungsi renderLogin, renderSuperAdminDashboard, renderGuruDashboard, renderSiswaDashboard, renderModal, closeModal tetap SAMA) ...
             const renderLogin = () => {
                 appContainer.innerHTML = `
                     <div class="min-h-screen flex items-center justify-center">
@@ -304,15 +323,19 @@
                         </div>
                     </div>
                 `;
+                // Attach login button listener specifically when login page is rendered
+                document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
             };
             
             const renderSuperAdminDashboard = () => {
+                // Bagian manajemen pengguna yang sudah disetujui
                 const managedUsers = [...(state.users.guru || []), ...(state.users.siswa || [])]
+                    .filter(user => user.status === 'approved')
                     .map(user => `
                         <tr class="border-b">
                             <td class="p-3">${user.nama}</td>
                             <td class="p-3">${user.username}</td>
-                            <td class="p-3 capitalize">${(state.users.guru || []).some(u => u.id === user.id) ? 'Guru' : 'Siswa'}</td>
+                            <td class="p-3 capitalize">${(state.users.guru || []).find(u => u.id === user.id) ? 'Guru' : 'Siswa'}</td>
                             <td class="p-3 text-right">
                                 <button data-action="edit-user" data-id="${user.id}" class="bg-yellow-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-yellow-600 mr-2"><i class="fas fa-edit"></i></button>
                                 <button data-action="delete-user" data-id="${user.id}" class="bg-red-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-red-600"><i class="fas fa-trash"></i></button>
@@ -341,8 +364,8 @@
                                </button>
                             </div>
                             
-                              <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-700">Daftar Pengguna Aktif</h3>
-                              <div class="overflow-x-auto rounded-lg border">
+                             <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-700">Daftar Pengguna Aktif</h3>
+                             <div class="overflow-x-auto rounded-lg border">
                                 <table class="min-w-full bg-white">
                                     <thead class="bg-gray-200">
                                         <tr>
@@ -465,7 +488,7 @@
                                         </div>
                                         <div class="mt-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md">
                                             <p class="font-bold text-base">Komentar dari Guru:</p>
-                                            <p>${pengumpulan.komentarGuru}</p>
+                                            <p>${pengumpulan.komentarGuru || '<i>Belum ada komentar.</i>'}</p>
                                         </div>
                                     ` : `
                                         <p class="mt-3 text-sm text-gray-500">Tugas Anda sedang diperiksa oleh guru.</p>
@@ -524,32 +547,50 @@
             }
 
             // =================================================================================
-            // EVENT HANDLERS & ACTIONS
+            // EVENT HANDLERS & ACTIONS (DIMODIFIKASI UNTUK SUPABASE)
             // =================================================================================
 
-            const handleLogin = () => {
+            const handleLogin = async () => {
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 const role = document.getElementById('roleSelector').value;
                 const errorEl = document.getElementById('loginError');
+                
+                errorEl.classList.add('hidden');
 
-                const userList = state.users[role];
-                if (!userList) {
-                    errorEl.textContent = 'Peran tidak valid.';
-                    errorEl.classList.remove('hidden');
-                    return;
-                }
-                const user = userList.find(u => u.username === username && u.password === password);
+                // Logika login diubah untuk mengecek ke Supabase
+                try {
+                    const { data: user, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('username', username)
+                        .eq('password', password) // Catatan: Menyimpan password sebagai teks biasa tidak aman untuk produksi!
+                        .eq('role', role)
+                        .single(); // Ambil satu data
 
-                if (user) {
-                    state.currentUserRole = role;
-                    state.currentUserName = user.nama;
-                    state.currentUserId = user.id; // Simpan ID pengguna
-                    errorEl.classList.add('hidden');
-                    saveState();
-                    main();
-                } else {
-                    errorEl.textContent = 'Username atau password salah.';
+                    if (error && !user) {
+                        throw new Error('Username atau password salah.');
+                    }
+
+                    if (user) {
+                        // Pengecekan status
+                        if (user.status && user.status !== 'approved') {
+                            errorEl.textContent = 'Akun Anda belum disetujui oleh admin.';
+                            errorEl.classList.remove('hidden');
+                            return;
+                        }
+                        
+                        state.currentUserRole = user.role;
+                        state.currentUserName = user.nama;
+                        state.currentUserId = user.id;
+                        saveState(); // Simpan sesi login ke localStorage
+                        main(); // Muat ulang dashboard
+                    } else {
+                        errorEl.textContent = 'Username atau password salah.';
+                        errorEl.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    errorEl.textContent = error.message;
                     errorEl.classList.remove('hidden');
                 }
             };
@@ -558,40 +599,43 @@
                 state.currentUserRole = null;
                 state.currentUserName = null;
                 state.currentUserId = null;
-                saveState();
+                saveState(); // Simpan sesi (kosong) ke localStorage
                 main();
             };
-            
+
             const handleKumpulTugas = (tugasId) => {
-                const tugas = state.tugas.find(t => t.id === tugasId);
+                const tugas = state.tugas.find(t => t.id === parseInt(tugasId));
                 renderModal({
                     title: `Kumpulkan: ${tugas.judul}`,
                     body: `
-                        <p class="mb-4">Silakan unggah file tugas Anda.</p>
+                        <p class="mb-4 text-base">Silakan unggah file tugas Anda. Pastikan format file sesuai.</p>
                         <input type="file" id="file-upload" class="w-full p-2 border rounded-md">
                         <p id="file-error" class="text-red-500 text-sm mt-2 hidden"></p>
                     `,
                     footer: `
-                        <button data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-400">Batal</button>
-                        <button data-action="submit-tugas" data-id="${tugasId}" class="bg-violet-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-violet-700">Kirim</button>
+                        <button type="button" data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-400">Batal</button>
+                        <button type="button" data-action="submit-kumpul" data-id="${tugas.id}" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600">Unggah</button>
                     `
                 });
             };
 
-            const handleSubmitTugas = (tugasId) => {
+            const handleSubmitKumpul = async (tugasId) => {
                 const fileInput = document.getElementById('file-upload');
                 const file = fileInput.files[0];
                 const errorEl = document.getElementById('file-error');
 
                 if (!file) {
-                    errorEl.textContent = "Silakan pilih file terlebih dahulu.";
+                    errorEl.textContent = 'Silakan pilih file untuk diunggah.';
                     errorEl.classList.remove('hidden');
                     return;
                 }
+                
+                // Buat ID baru yang unik (menggunakan timestamp sederhana)
+                const newId = new Date().getTime();
 
                 const newPengumpulan = {
-                    id: Date.now(),
-                    tugasId: tugasId,
+                    id: newId, 
+                    tugasId: parseInt(tugasId),
                     siswaId: state.currentUserId,
                     namaSiswa: state.currentUserName,
                     file: { name: file.name, size: file.size },
@@ -599,47 +643,96 @@
                     nilai: null,
                     komentarGuru: null
                 };
+                
+                // Data untuk dikirim ke Supabase
+                const dataToInsert = {
+                    id: newPengumpulan.id,
+                    tugasId: newPengumpulan.tugasId,
+                    siswaId: newPengumpulan.siswaId,
+                    namaSiswa: newPengumpulan.namaSiswa,
+                    file_name: newPengumpulan.file.name,
+                    file_size: newPengumpulan.file.size,
+                    tanggalKumpul: newPengumpulan.tanggalKumpul.toISOString(), // Kirim sebagai string ISO
+                    nilai: null,
+                    komentarGuru: null
+                };
 
-                state.pengumpulan.push(newPengumpulan);
-                saveState();
-                closeModal();
-                showNotification('Tugas berhasil dikumpulkan!');
-                renderSiswaDashboard();
-            };
-            
-            const handleSimpanPenilaian = (pengumpulanId) => {
-                const pengumpulan = state.pengumpulan.find(p => p.id === pengumpulanId);
-                const nilaiInput = document.querySelector(`.nilai-input[data-id="${pengumpulanId}"]`);
-                const komentarInput = document.querySelector(`.komentar-input[data-id="${pengumpulanId}"]`);
+                try {
+                    const { error } = await supabase.from('pengumpulan').insert(dataToInsert);
+                    if (error) throw error;
 
-                pengumpulan.nilai = parseInt(nilaiInput.value) || null;
-                pengumpulan.komentarGuru = komentarInput.value || null;
+                    // Jika sukses di DB, tambahkan ke state lokal dan render ulang
+                    state.pengumpulan.push(newPengumpulan);
+                    // saveState(); // Tidak perlu lagi, data sudah di DB
+                    closeModal();
+                    showNotification('Tugas berhasil dikumpulkan!');
+                    renderSiswaDashboard();
 
-                saveState();
-                showNotification(`Penilaian untuk ${pengumpulan.namaSiswa} telah disimpan.`);
+                } catch (error) {
+                    console.error('Error submitting assignment:', error.message);
+                    errorEl.textContent = 'Gagal mengunggah: ' + error.message;
+                    errorEl.classList.remove('hidden');
+                }
             };
 
             const handleLihatTugas = (pengumpulanId) => {
-                 const pengumpulan = state.pengumpulan.find(p => p.id === pengumpulanId);
-                 const tugas = state.tugas.find(t => t.id === pengumpulan.tugasId);
-                 
+                 const pengumpulan = state.pengumpulan.find(p => p.id === parseInt(pengumpulanId));
+                 if (!pengumpulan) return;
+
                  renderModal({
-                    title: `Detail Tugas: ${tugas.judul}`,
+                    title: `Detail Pengumpulan: ${pengumpulan.namaSiswa}`,
                     body: `
-                        <p><span class="font-bold">Siswa:</span> ${pengumpulan.namaSiswa}</p>
-                        <p><span class="font-bold">File:</span> ${pengumpulan.file.name}</p>
-                        <p><span class="font-bold">Ukuran:</span> ${(pengumpulan.file.size / 1024).toFixed(2)} KB</p>
-                        <p class="mt-4 text-gray-600 text-sm">Ini adalah simulasi. Di aplikasi nyata, akan ada tautan untuk mengunduh file.</p>
+                        <div class="space-y-3">
+                            <p><strong class="font-medium">Siswa:</strong> ${pengumpulan.namaSiswa}</p>
+                            <p><strong class="font-medium">File:</strong> <i class="fas fa-file-alt mr-1"></i>${pengumpulan.file.name}</p>
+                            <p><strong class="font-medium">Ukuran File:</strong> ${(pengumpulan.file.size / 1024).toFixed(2)} KB</p>
+                            <p><strong class="font-medium">Tanggal Kumpul:</strong> ${formatDate(pengumpulan.tanggalKumpul)}</p>
+                            <p class="mt-4 text-sm text-gray-500">(Pratinjau file tidak tersedia dalam demo ini. Klik file akan mengunduhnya.)</p>
+                        </div>
                     `,
-                    footer: `<button data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Tutup</button>`
+                    footer: `
+                        <button type="button" data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-400">Tutup</button>
+                    `
                  });
+            };
+
+            const handleSimpanPenilaian = async (pengumpulanId) => {
+                const id = parseInt(pengumpulanId);
+                const pengumpulan = state.pengumpulan.find(p => p.id === id);
+                
+                const nilaiInput = document.querySelector(`.nilai-input[data-id="${id}"]`);
+                const komentarInput = document.querySelector(`.komentar-input[data-id="${id}"]`);
+
+                if (pengumpulan && nilaiInput && komentarInput) {
+                    const nilaiBaru = parseInt(nilaiInput.value) || null;
+                    const komentarBaru = komentarInput.value;
+
+                    try {
+                        const { error } = await supabase
+                            .from('pengumpulan')
+                            .update({ nilai: nilaiBaru, komentarGuru: komentarBaru })
+                            .eq('id', id);
+                        
+                        if (error) throw error;
+
+                        // Jika sukses di DB, update state lokal
+                        pengumpulan.nilai = nilaiBaru;
+                        pengumpulan.komentarGuru = komentarBaru;
+                        // saveState(); // Tidak perlu
+                        showNotification(`Penilaian untuk ${pengumpulan.namaSiswa} berhasil disimpan.`);
+                    
+                    } catch (error) {
+                         console.error('Error saving grade:', error.message);
+                         showNotification('Gagal menyimpan penilaian: ' + error.message, 'error');
+                    }
+                }
             };
             
             const handleTambahTugas = () => {
                 renderModal({
                     title: 'Tambah Tugas Baru',
                     body: `
-                        <div class="space-y-4">
+                        <form id="tugas-baru-form" class="space-y-4">
                             <div>
                                 <label for="tugas-judul" class="block mb-1 font-medium">Judul Tugas</label>
                                 <input type="text" id="tugas-judul" class="w-full p-2 border rounded-md" required>
@@ -650,75 +743,91 @@
                             </div>
                             <div>
                                 <label for="tugas-deadline" class="block mb-1 font-medium">Deadline</label>
-                                <input type="datetime-local" id="tugas-deadline" class="w-full p-2 border rounded-md" required>
+                                <input type="datetime-local" id="tugas-deadline" class="w-full p-2 border rounded-md" required value="${toDateTimeLocal(new Date())}">
                             </div>
                              <p id="tugas-error" class="text-red-500 text-sm hidden"></p>
-                        </div>
+                        </form>
                     `,
                     footer: `
-                        <button data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-400">Batal</button>
-                        <button data-action="simpan-tugas-baru" class="bg-violet-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-violet-700">Simpan Tugas</button>
+                        <button type="button" data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-400">Batal</button>
+                        <button type="button" data-action="submit-tugas-baru" class="bg-violet-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-violet-700">Simpan Tugas</button>
                     `
                 });
-                document.getElementById('tugas-deadline').value = toDateTimeLocal(new Date());
             };
-            
-            const handleSimpanTugasBaru = () => {
+
+            const handleSubmitTugasBaru = async () => {
                 const judul = document.getElementById('tugas-judul').value;
                 const deskripsi = document.getElementById('tugas-deskripsi').value;
                 const deadline = document.getElementById('tugas-deadline').value;
                 const errorEl = document.getElementById('tugas-error');
-                
+
                 if (!judul || !deskripsi || !deadline) {
-                    errorEl.textContent = 'Semua kolom wajib diisi.';
+                    errorEl.textContent = 'Semua field harus diisi.';
                     errorEl.classList.remove('hidden');
                     return;
                 }
+
+                const newId = new Date().getTime(); // ID unik
                 
                 const newTugas = {
-                    id: Date.now(),
-                    judul,
-                    deskripsi,
+                    id: newId,
+                    judul: judul,
+                    deskripsi: deskripsi,
                     deadline: new Date(deadline)
                 };
-                
-                state.tugas.push(newTugas);
-                saveState();
-                closeModal();
-                showNotification('Tugas baru berhasil ditambahkan.');
-                renderGuruDashboard();
-            };
-            
-            // --- User Management Handlers (Admin) ---
-            const showUserModal = (userId = null) => {
-                const form = document.getElementById('user-form');
-                form.reset();
-                document.getElementById('user-error').classList.add('hidden');
-                document.getElementById('user-id').value = '';
-                
-                const passwordInput = document.getElementById('user-password');
-                const passwordHint = document.getElementById('password-hint');
 
+                const dataToInsert = {
+                    id: newTugas.id,
+                    judul: newTugas.judul,
+                    deskripsi: newTugas.deskripsi,
+                    deadline: newTugas.deadline.toISOString() // Kirim sebagai string ISO
+                };
+
+                try {
+                    const { error } = await supabase.from('tugas').insert(dataToInsert);
+                    if (error) throw error;
+
+                    // Jika sukses di DB, tambahkan ke state lokal
+                    state.tugas.push(newTugas);
+                    // saveState(); // Tidak perlu
+                    closeModal();
+                    showNotification('Tugas baru berhasil ditambahkan.');
+                    renderGuruDashboard();
+                } catch (error) {
+                    console.error('Error adding task:', error.message);
+                    errorEl.textContent = 'Gagal menyimpan: ' + error.message;
+                    errorEl.classList.remove('hidden');
+                }
+            };
+
+            const openUserModal = (userId = null) => {
+                userForm.reset();
+                userError.classList.add('hidden');
+                
                 if (userId) {
                     // Edit mode
                     const allUsers = [...state.users.guru, ...state.users.siswa];
-                    const user = allUsers.find(u => u.id === userId);
-                    const userRole = state.users.guru.some(u => u.id === userId) ? 'guru' : 'siswa';
+                    const user = allUsers.find(u => u.id === parseInt(userId));
+                    if (!user) return;
 
-                    document.getElementById('user-modal-title').textContent = 'Edit Pengguna';
+                    const role = state.users.guru.includes(user) ? 'guru' : 'siswa';
+                    
+                    userModalTitle.textContent = 'Edit Pengguna';
                     document.getElementById('user-id').value = user.id;
                     document.getElementById('user-nama').value = user.nama;
                     document.getElementById('user-username').value = user.username;
-                    document.getElementById('user-username').disabled = true; // Username cannot be changed
-                    document.getElementById('user-role').value = userRole;
-                    passwordInput.required = false;
+                    document.getElementById('user-username').disabled = true; // Don't allow username change
+                    document.getElementById('user-role').value = role;
                     passwordHint.classList.remove('hidden');
+                    document.getElementById('user-password').required = false;
+
                 } else {
                     // Add mode
-                    document.getElementById('user-modal-title').textContent = 'Tambah Pengguna';
+                    userModalTitle.textContent = 'Tambah Pengguna';
+                    document.getElementById('user-id').value = '';
                     document.getElementById('user-username').disabled = false;
-                    passwordInput.required = true;
                     passwordHint.classList.add('hidden');
+                    document.getElementById('user-password').required = true;
                 }
                 userModal.classList.add('flex');
                 userModal.classList.remove('hidden');
@@ -727,78 +836,175 @@
             const closeUserModal = () => {
                 userModal.classList.add('hidden');
                 userModal.classList.remove('flex');
+                userForm.reset();
             };
-
-            const handleUserFormSubmit = (event) => {
+            
+            const handleUserFormSubmit = async (event) => {
                 event.preventDefault();
+                userError.classList.add('hidden');
+
                 const id = document.getElementById('user-id').value;
                 const nama = document.getElementById('user-nama').value;
                 const username = document.getElementById('user-username').value;
                 const password = document.getElementById('user-password').value;
                 const role = document.getElementById('user-role').value;
-                const errorEl = document.getElementById('user-error');
+
+                const allUsernames = [...state.users.guru, ...state.users.siswa, ...state.users.superadmin].map(u => u.username);
+
+                try {
+                    if (id) {
+                        // --- EDIT PENGGUNA ---
+                        const currentRoleList = state.users.guru.find(u => u.id === parseInt(id)) ? state.users.guru : state.users.siswa;
+                        const user = currentRoleList.find(u => u.id === parseInt(id));
+                        
+                        if (user) {
+                            const dataToUpdate = {
+                                nama: nama,
+                                role: role
+                            };
+                            if (password) { // Hanya update password jika diisi
+                                dataToUpdate.password = password;
+                            }
+
+                            const { error } = await supabase.from('users').update(dataToUpdate).eq('id', id);
+                            if (error) throw error;
+                            
+                            // Update state lokal
+                            user.nama = nama;
+                            user.role = role;
+                            if (password) user.password = password;
+
+                            // Cek jika role berubah & pindahkan di state lokal
+                            const oldRole = currentRoleList === state.users.guru ? 'guru' : 'siswa';
+                            if (oldRole !== role) {
+                                const index = currentRoleList.findIndex(u => u.id === parseInt(id));
+                                currentRoleList.splice(index, 1);
+                                state.users[role].push(user);
+                            }
+                            
+                            showNotification('Data pengguna berhasil diperbarui.');
+                        }
+                    } else {
+                        // --- TAMBAH PENGGUNA BARU ---
+                        if (!password) {
+                            userError.textContent = 'Password wajib diisi untuk pengguna baru.';
+                            userError.classList.remove('hidden');
+                            return;
+                        }
+                        // Cek username di DB, bukan cuma state
+                        const { data: existingUser, error: checkError } = await supabase.from('users').select('username').eq('username', username).single();
+                        
+                        if (existingUser) {
+                            userError.textContent = 'Username sudah digunakan. Silakan pilih yang lain.';
+                            userError.classList.remove('hidden');
+                            return;
+                        }
+                        
+                        const newId = new Date().getTime(); // ID unik
+                        const newUser = {
+                            id: newId, 
+                            username: username,
+                            password: password,
+                            nama: nama,
+                            role: role,
+                            status: 'approved' // Otomatis approve
+                        };
+                        
+                        const { error: insertError } = await supabase.from('users').insert(newUser);
+                        if (insertError) throw insertError;
+
+                        // Tambahkan ke state lokal
+                        state.users[role].push(newUser);
+                        showNotification('Pengguna baru berhasil ditambahkan.');
+                    }
+
+                    // saveState(); // Tidak perlu
+                    closeUserModal();
+                    renderSuperAdminDashboard();
                 
-                if (id) {
-                    // Update user
-                    const userList = state.users[role];
-                    const user = userList.find(u => u.id === parseInt(id));
-                    if (user) {
-                        user.nama = nama;
-                        if (password) {
-                            user.password = password;
+                } catch (error) {
+                    console.error('Error saving user:', error.message);
+                    userError.textContent = 'Gagal menyimpan: ' + error.message;
+                    userError.classList.remove('hidden');
+                }
+            };
+
+            const handleDeleteUser = (userId) => {
+                 const id = parseInt(userId);
+                 const allUsers = [...state.users.guru, ...state.users.siswa];
+                 const user = allUsers.find(u => u.id === id);
+                 if (!user) return;
+
+                 renderModal({
+                    title: 'Konfirmasi Hapus Pengguna',
+                    body: `
+                        <p class="text-base">Apakah Anda yakin ingin menghapus pengguna <strong class="font-medium">${user.nama}</strong> (${user.username})?</p>
+                        <p class="text-base text-red-600 mt-2">Tindakan ini tidak dapat dibatalkan.</p>
+                    `,
+                    footer: `
+                        <button type="button" data-action="close-modal" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-400">Batal</button>
+                        <button type="button" data-action="confirm-delete-user" data-id="${id}" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Hapus</button>
+                    `
+                 });
+            };
+
+            const handleConfirmDeleteUser = async (userId) => {
+                const id = parseInt(userId);
+                
+                try {
+                    // Hapus data terkait (pengumpulan) terlebih dahulu jika dia siswa
+                    const isSiswa = state.users.siswa.find(u => u.id === id);
+                    if (isSiswa) {
+                        const { error: deletePengumpulanError } = await supabase.from('pengumpulan').delete().eq('siswaId', id);
+                        if (deletePengumpulanError) throw deletePengumpulanError;
+                    }
+
+                    // Hapus pengguna
+                    const { error: deleteUserError } = await supabase.from('users').delete().eq('id', id);
+                    if (deleteUserError) throw deleteUserError;
+
+                    // Hapus dari state lokal
+                    let index = state.users.guru.findIndex(u => u.id === id);
+                    if (index > -1) {
+                        state.users.guru.splice(index, 1);
+                    } else {
+                        index = state.users.siswa.findIndex(u => u.id === id);
+                        if (index > -1) {
+                            state.users.siswa.splice(index, 1);
                         }
                     }
-                } else {
-                    // Add new user
-                    // Check if username already exists
-                    const allUsers = [...state.users.guru, ...state.users.siswa];
-                    if (allUsers.some(u => u.username === username)) {
-                        errorEl.textContent = 'Username sudah digunakan.';
-                        errorEl.classList.remove('hidden');
-                        return;
+                    
+                    // Hapus juga pengumpulan dari state lokal
+                    if (isSiswa) {
+                        state.pengumpulan = state.pengumpulan.filter(p => p.siswaId !== id);
                     }
-                    const newUser = {
-                        id: Date.now(),
-                        nama,
-                        username,
-                        password,
-                        status: 'approved'
-                    };
-                    state.users[role].push(newUser);
-                }
-                
-                saveState();
-                closeUserModal();
-                showNotification(id ? 'Pengguna berhasil diperbarui.' : 'Pengguna berhasil ditambahkan.');
-                renderSuperAdminDashboard();
-            };
-            
-            const handleDeleteUser = (userId) => {
-                let userRole = null;
-                let userIndex = -1;
+                    
+                    // saveState(); // Tidak perlu
+                    closeModal();
+                    showNotification('Pengguna berhasil dihapus.');
+                    renderSuperAdminDashboard();
 
-                if (state.users.guru.some(u => u.id === userId)) {
-                    userRole = 'guru';
-                    userIndex = state.users.guru.findIndex(u => u.id === userId);
-                } else {
-                    userRole = 'siswa';
-                    userIndex = state.users.siswa.findIndex(u => u.id === userId);
-                }
-                
-                if (confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-                     state.users[userRole].splice(userIndex, 1);
-                     saveState();
-                     showNotification('Pengguna berhasil dihapus.');
-                     renderSuperAdminDashboard();
+                } catch (error) {
+                    console.error('Error deleting user:', error.message);
+                    closeModal();
+                    showNotification('Gagal menghapus pengguna: ' + error.message, 'error');
                 }
             };
-            
+
 
             // =================================================================================
-            // MAIN APP LOGIC & INITIALIZATION
+            // MAIN ROUTER & APP INITIALIZATION
             // =================================================================================
 
-            const main = () => {
+            const main = async () => {
+                // Pertama, muat semua data dari database
+                const success = await loadDataFromSupabase();
+
+                // Jika gagal memuat data (misal: RLS masih aktif), hentikan
+                if (!success) return; 
+
+                // Setelah data ada, baru tentukan halaman mana yang ditampilkan
+                // berdasarkan sesi login (yang dimuat dari localStorage)
                 if (state.currentUserRole === 'superadmin') {
                     renderSuperAdminDashboard();
                 } else if (state.currentUserRole === 'guru') {
@@ -810,50 +1016,50 @@
                 }
             };
 
-            // Centralized Event Listener
-            document.body.addEventListener('click', (e) => {
-                const target = e.target.closest('[data-action], [id]');
-                if (!target) return;
-                
-                const action = target.dataset.action;
-                const id = target.dataset.id ? parseInt(target.dataset.id) : null;
+            // Global Event Listener (Event Delegation)
+            document.addEventListener('click', (e) => {
+                const action = e.target.closest('[data-action]');
+                if (!action) return;
 
-                switch (action || target.id) {
-                    case 'loginBtn':
-                        handleLogin();
-                        break;
+                const actionName = action.dataset.action;
+                const id = action.dataset.id;
+
+                switch (actionName) {
                     case 'logout':
                         handleLogout();
                         break;
                     case 'kumpul-tugas':
                         handleKumpulTugas(id);
                         break;
-                    case 'submit-tugas':
-                        handleSubmitTugas(id);
+                    case 'close-modal':
+                        closeModal();
+                        break;
+                    case 'submit-kumpul':
+                        handleSubmitKumpul(id);
+                        break;
+                    case 'lihat-tugas':
+                        handleLihatTugas(id);
                         break;
                     case 'simpan-penilaian':
                         handleSimpanPenilaian(id);
                         break;
-                    case 'lihat-tugas':
-                         handleLihatTugas(id);
-                        break;
                     case 'tambah-tugas':
                         handleTambahTugas();
                         break;
-                    case 'simpan-tugas-baru':
-                        handleSimpanTugasBaru();
-                        break;
-                    case 'close-modal':
-                        closeModal();
+                    case 'submit-tugas-baru':
+                        handleSubmitTugasBaru();
                         break;
                     case 'add-user':
-                        showUserModal();
+                        openUserModal();
                         break;
                     case 'edit-user':
-                        showUserModal(id);
+                        openUserModal(id);
                         break;
                     case 'delete-user':
                         handleDeleteUser(id);
+                        break;
+                    case 'confirm-delete-user':
+                        handleConfirmDeleteUser(id);
                         break;
                     case 'close-user-modal':
                         closeUserModal();
@@ -861,11 +1067,17 @@
                 }
             });
             
-            document.getElementById('user-form').addEventListener('submit', handleUserFormSubmit);
-            
+            // Listener untuk form admin
+            userForm.addEventListener('submit', handleUserFormSubmit);
+
+            // Fungsi inisialisasi baru
+            const initializeApp = () => {
+                loadState(); // Muat sesi login dari localStorage
+                main();      // Panggil main (yang akan memuat data dari Supabase lalu render)
+            };
+
             // Initial Load
-            loadState();
-            main();
+            initializeApp();
         });
     </script>
 </body>
